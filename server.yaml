@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: matrix
+  name: matrix
+spec:
+  containers:
+    - name: db
+      image: docker.io/library/postgres:latest
+      env:
+      - name: POSTGRES_USER
+        value: "postgres"
+      - name: POSTGRES_PASSWORD
+        value: "password"
+      - name: POSTGRES_DB
+        value: "bridges"
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: db-data
+        mountPath: /var/lib/postgresql/data
+      - name: db-scripts
+        mountPath: /docker-entrypoint-initdb.d
+
+    - name: homeserver
+      image: registry.gitlab.com/famedly/conduit/matrix-conduit:latest
+      env:
+        - name: CONDUIT_SERVER_NAME
+          value: "matrix.my.domain"
+        - name: CONDUIT_PORT
+          value: 10099
+        - name: CONDUIT_DATABASE_BACKEND
+          value: "rocksdb"
+        - name: CONDUIT_ALLOW_REGISTRATION
+          value: "true"
+        - name: CONDUIT_ALLOW_FEDERATION
+          value: "true"
+        - name: CONDUIT_TRUSTED_SERVERS
+          value: "[\"matrix.org\", \"matrix.my.domain\"]"
+        - name: CONDUIT_ALLOW_CHECK_FOR_UPDATES
+          value: "true"
+        - name: CONDUIT_ADDRESS
+          value: "0.0.0.0"
+        - name: CONDUIT_ALLOW_ENCRYPTION
+          value: "true"
+        - name: CONDUIT_TURN_URIS
+          value: '["turn:my.domain?transport=udp", "turn:my.domain?transport=tcp"]'
+        - name: CONDUIT_TURN_SECRET
+          value: "SECRET"
+      ports:
+        - containerPort: 10099
+          hostPort: 10099
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: homeserver-db
+        mountPath: /var/lib/matrix-conduit
+      - name: media-store  # Todo: Used by Synapse, what about Conduit?
+        mountPath: /media_store
+
+    - name: webui
+      image: docker.io/vectorim/element-web:latest
+      ports:
+        - containerPort: 80
+          hostPort: 10011
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+
+    - name: bridge-discord
+      image: dock.mau.dev/mautrix/discord:latest
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: bridge-discord-data
+        mountPath: /data
+
+    - name: bridge-instagram
+      image: dock.mau.dev/mautrix/instagram:latest
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: bridge-instagram-data
+        mountPath: /data
+
+    - name: bridge-linkedin
+      image: ghcr.io/beeper/linkedin:latest
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: bridge-instagram-data
+        mountPath: /data
+
+    - name: bridge-signal
+      image: dock.mau.dev/mautrix/signal:latest
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: bridge-signal-data
+        mountPath: /data
+
+    - name: bridge-whatsapp
+      image: dock.mau.dev/mautrix/whatsapp:latest
+      securityContext:
+        capabilities:
+          drop:
+          - CAP_MKNOD
+          - CAP_NET_RAW
+          - CAP_AUDIT_WRITE
+      volumeMounts:
+      - name: bridge-whatsapp-data
+        mountPath: /data
+
+  volumes:
+  - name: homeserver-db
+    persistentVolumeClaim:
+      claimName: matrix-homeserver-db
+  - name: db-data
+    persistentVolumeClaim:
+      claimName: matrix-db-data
+  - name: db-scripts
+    hostPath:
+      path: /data/matrix/postgres
+      type: Directory
+  - name: media-store
+    hostPath:
+      path: /data/matrix/media
+      type: Directory
+  - name: bridge-discord-data
+    hostPath:
+      path: /data/matrix/bridges/discord
+      type: Directory
+  - name: bridge-instagram-data
+    hostPath:
+      path: /data/matrix/bridges/instagram
+      type: Directory
+  - name: bridge-linkedin-data
+    hostPath:
+      path: /data/matrix/bridges/linkedin
+      type: Directory
+  - name: bridge-signal-data
+    hostPath:
+      path: /data/matrix/bridges/signal
+      type: Directory
+  - name: bridge-whatsapp-data
+    hostPath:
+      path: /data/matrix/bridges/whatsapp
+      type: Directory
