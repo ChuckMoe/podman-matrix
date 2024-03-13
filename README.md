@@ -1,3 +1,12 @@
+# Config
+
+- Change the passwords in `postgres/init.sql`
+- Change the secrets for:
+	- `coturn.conf`
+	- `server.yaml`
+	- `bridges/doublepuppet.yaml`
+	- `bridges/NAME/config.yaml`
+
 # Installation
 
 ```bash
