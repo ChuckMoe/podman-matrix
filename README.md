@@ -1,7 +1,7 @@
 # Config
 
 - Change the passwords in `postgres/init.sql`
-- Change the secrets for:
+- Change the secrets and domain for:
 	- `coturn.conf`
 	- `server.yaml`
 	- `bridges/doublepuppet.yaml`
